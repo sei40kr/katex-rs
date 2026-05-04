@@ -1,27 +1,33 @@
 //! Rust port of KaTeX.
 //!
-//! Phase 0–4 surface: env-independent leaf primitives, the
+//! Phase 0–6 surface: env-independent leaf primitives, the
 //! lexer / token / namespace / macro-expander layer, the codegen-emitted
 //! static data tables (`symbols`, `macros`, `spacing_data`, the unicode
 //! helpers, and `font_metrics_data`), the [`parse_node::ParseNode`] AST
 //! type, the function/environment/macro dispatch shapes plus the lazy
-//! [`functions::FUNCTIONS`] registry, and the [`parser::Parser`] that
-//! converts a token stream into a `Vec<ParseNode>`. Builder and renderer
-//! land in subsequent phases.
+//! [`functions::FUNCTIONS`] registry, the [`parser::Parser`] that
+//! converts a token stream into a `Vec<ParseNode>`, and the MathML
+//! renderer ([`mathml_tree`], [`options`], [`build_mathml`]) reachable
+//! from the top-level [`render_to_mathml_string`] entry point.
+//! HTML+CSS rendering lands in Phase 10.
 //!
 //! See `CLAUDE.md` at the repo root for vision and architectural rules.
 
 #![forbid(unsafe_code)]
 
+pub mod build_mathml;
 pub mod define_environment;
 pub mod define_function;
 pub mod define_macro;
 pub mod font_metrics_data;
 pub mod functions;
+mod katex;
 pub mod lexer;
 pub mod macro_expander;
 pub mod macros;
+pub mod mathml_tree;
 pub mod namespace;
+pub mod options;
 pub mod parse_error;
 pub mod parse_node;
 pub mod parser;
@@ -41,18 +47,20 @@ pub mod units;
 
 pub use define_environment::{EnvContext, EnvHandler, EnvSpec};
 pub use define_function::{
-    BuilderOptions, FunctionContext, FunctionHandler, FunctionSpec, HtmlBuilder, HtmlDomNode,
-    MathDomNode, MathmlBuilder, normalize_argument, ord_argument,
+    FunctionContext, FunctionHandler, FunctionSpec, MathmlBuilder, normalize_argument, ord_argument,
 };
 pub use define_macro::MacroSpec;
 pub use font_metrics_data::{CharacterMetrics, FONT_METRICS_DATA};
 pub use functions::{FUNCTIONS, FunctionRegistry};
+pub use katex::{parse, render_to_mathml_string};
 pub use lexer::Lexer;
 pub use macro_expander::{
     BuiltinFn, BuiltinResult, MacroArg, MacroDefinition, MacroExpander, MacroExpansion,
 };
 pub use macros::MACROS;
+pub use mathml_tree::{MathMlElement, MathMlNode};
 pub use namespace::Namespace;
+pub use options::Options;
 pub use parse_error::ParseError;
 pub use parse_node::{ArrayTag, HLineSpec, NodeType, OpBody, ParseNode};
 pub use parser::Parser;

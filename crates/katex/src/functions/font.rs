@@ -114,7 +114,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_font),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::MClass,
@@ -129,7 +128,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_boldsymbol),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Font,
@@ -144,6 +142,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_old_font),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

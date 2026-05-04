@@ -265,7 +265,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_frac),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Infix,
@@ -280,7 +279,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_infix),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::GenFrac,
@@ -295,7 +293,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_genfrac),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Infix,
@@ -310,7 +307,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_above),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::GenFrac,
@@ -325,6 +321,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_abovefrac),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

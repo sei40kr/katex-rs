@@ -7,7 +7,7 @@
 //! built from an explicit slice. See the deviation note in
 //! [`crate::define_function`] for the rationale.
 
-use crate::define_function::{HtmlBuilder, MathmlBuilder};
+use crate::define_function::MathmlBuilder;
 use crate::parse_error::ParseError;
 use crate::parse_node::{NodeType, ParseNode};
 use crate::parser::Parser;
@@ -69,9 +69,6 @@ pub struct EnvSpec {
     /// MathML builder. Optional only because some environments share a
     /// node type with another spec that owns the builder.
     pub mathml_builder: Option<MathmlBuilder>,
-
-    /// HTML+CSS builder. Optional always.
-    pub html_builder: Option<HtmlBuilder>,
 }
 
 impl EnvSpec {
@@ -90,7 +87,6 @@ impl EnvSpec {
             num_optional_args: 0,
             handler,
             mathml_builder: None,
-            html_builder: None,
         }
     }
 }

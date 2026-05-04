@@ -70,7 +70,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_textcolor),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Color,
@@ -85,6 +84,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_color),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

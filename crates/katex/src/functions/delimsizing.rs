@@ -219,7 +219,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_size),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::LeftRightRight,
@@ -234,7 +233,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: true,
         handler: Some(handler_right),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::LeftRight,
@@ -249,7 +247,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: true,
         handler: Some(handler_left),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Middle,
@@ -264,6 +261,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: true,
         handler: Some(handler_middle),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

@@ -12,3 +12,8 @@
 /katex-*.tgz
 /package
 
+# Local demo output regenerated from the `mathml_demo` example —
+# never commit, since a snapshot would silently drift from the
+# current renderer.
+/examples/web/index.html
+

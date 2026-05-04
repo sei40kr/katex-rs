@@ -56,7 +56,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_open),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Text,
@@ -71,6 +70,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_mismatch),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

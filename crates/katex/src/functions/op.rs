@@ -188,7 +188,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_big_ops),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Op,
@@ -203,7 +202,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: true,
         handler: Some(handler_mathop),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Op,
@@ -218,7 +216,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_named_no_limits),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Op,
@@ -233,7 +230,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_named_limits),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::Op,
@@ -248,6 +244,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_integrals),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

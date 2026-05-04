@@ -199,7 +199,6 @@ mod tests {
         primitive: false,
         handler: Some(dummy_handler),
         mathml_builder: None,
-        html_builder: None,
     };
 
     const BAR_SPEC: FunctionSpec = FunctionSpec {
@@ -215,7 +214,6 @@ mod tests {
         primitive: true,
         handler: Some(dummy_handler),
         mathml_builder: None,
-        html_builder: None,
     };
 
     static MODULE_A: &[FunctionSpec] = &[FOO_SPEC];

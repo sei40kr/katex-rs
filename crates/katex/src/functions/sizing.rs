@@ -53,5 +53,4 @@ pub const SPECS: &[FunctionSpec] = &[FunctionSpec {
     primitive: false,
     handler: Some(handler),
     mathml_builder: None,
-    html_builder: None,
 }];

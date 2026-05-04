@@ -25,32 +25,24 @@
 //!   because the trait was pure boilerplate (every method just delegated
 //!   to the concrete `Parser`). The cyclic module reference (`parser`
 //!   imports from here, this module names `Parser`) is fine in Rust.
-//!   The MathML/HTML builders still take `&dyn` traits — the real
-//!   signatures land alongside the renderers in Phases 6 and 10.
+//! - Phase 6 replaced the placeholder `BuilderOptions` /  `MathDomNode`
+//!   traits with the concrete [`crate::options::Options`] and
+//!   [`crate::mathml_tree::MathMlNode`] types. The MathML output tree
+//!   is a single enum (no trait-object hierarchy), so a `dyn MathDomNode`
+//!   shim would just add an indirection. The HTML+CSS builder slot
+//!   (`HtmlBuilder` / `html_builder`) was deleted at the same time —
+//!   designing it before Phase 10 commits the renderer's tree shape
+//!   would just be guessing. It returns when the HTML pipeline lands.
 
 use smol_str::SmolStr;
 
+use crate::mathml_tree::MathMlNode;
+use crate::options::Options;
 use crate::parse_error::ParseError;
 use crate::parse_node::{NodeType, ParseNode};
 use crate::parser::Parser;
 use crate::token::Token;
 use crate::tree::{ArgType, BreakToken};
-
-/// Stand-in for the rendering options threaded through builders. Phase 6
-/// (MathML) and Phase 10 (HTML+CSS) introduce the real fields; the
-/// trait lives here so the builder fn-pointer types in [`FunctionSpec`]
-/// have a stable signature to be filled in later.
-pub trait BuilderOptions {}
-
-/// Phase-6 placeholder: the abstract MathML node returned by a MathML
-/// builder. The concrete type (`mathml_tree::MathNode`) arrives with the
-/// renderer.
-pub trait MathDomNode {}
-
-/// Phase-10 placeholder: the abstract HTML node returned by an HTML
-/// builder. The concrete type (`dom_tree::HtmlDomNode`) arrives with
-/// the HTML renderer.
-pub trait HtmlDomNode {}
 
 /// Per-call context handed to a [`FunctionHandler`].
 pub struct FunctionContext<'a, 's> {
@@ -76,12 +68,7 @@ pub type FunctionHandler = for<'a, 's> fn(
 /// Phase-6+ MathML builder. The handler receives the parse node and the
 /// rendering options; it returns a MathML node to be inserted into the
 /// output tree.
-pub type MathmlBuilder =
-    fn(group: &ParseNode, options: &dyn BuilderOptions) -> Box<dyn MathDomNode>;
-
-/// Phase-10 HTML builder. Optional on most specs because MathML is the
-/// first milestone.
-pub type HtmlBuilder = fn(group: &ParseNode, options: &dyn BuilderOptions) -> Box<dyn HtmlDomNode>;
+pub type MathmlBuilder = fn(group: &ParseNode, options: &Options) -> MathMlNode;
 
 /// One row in the function dispatch table. Mirrors upstream's
 /// `FunctionSpec<NODETYPE>` (the per-NodeType generic is collapsed:
@@ -138,10 +125,6 @@ pub struct FunctionSpec {
     /// MathML builder. Optional now; required for any node that
     /// reaches the MathML output (Phase 6).
     pub mathml_builder: Option<MathmlBuilder>,
-
-    /// HTML+CSS builder. Optional always — only filled in for nodes
-    /// that participate in the HTML pipeline (Phase 10).
-    pub html_builder: Option<HtmlBuilder>,
 }
 
 impl FunctionSpec {
@@ -161,7 +144,6 @@ impl FunctionSpec {
             primitive: false,
             handler: None,
             mathml_builder: None,
-            html_builder: None,
         }
     }
 }
@@ -204,7 +186,6 @@ mod tests {
         assert!(!s.primitive);
         assert!(s.handler.is_none());
         assert!(s.mathml_builder.is_none());
-        assert!(s.html_builder.is_none());
     }
 
     #[test]

@@ -94,7 +94,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_html),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::HtmlMathml,
@@ -109,6 +108,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_htmlmathml),
         mathml_builder: None,
-        html_builder: None,
     },
 ];

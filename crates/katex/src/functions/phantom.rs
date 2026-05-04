@@ -45,7 +45,6 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_phantom),
         mathml_builder: None,
-        html_builder: None,
     },
     FunctionSpec {
         node_type: NodeType::VPhantom,
@@ -60,6 +59,5 @@ pub const SPECS: &[FunctionSpec] = &[
         primitive: false,
         handler: Some(handler_vphantom),
         mathml_builder: None,
-        html_builder: None,
     },
 ];
