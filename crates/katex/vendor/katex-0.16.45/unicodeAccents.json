@@ -1,0 +1,48 @@
+{
+  "́": {
+    "text": "\\'",
+    "math": "\\acute"
+  },
+  "̀": {
+    "text": "\\`",
+    "math": "\\grave"
+  },
+  "̈": {
+    "text": "\\\"",
+    "math": "\\ddot"
+  },
+  "̃": {
+    "text": "\\~",
+    "math": "\\tilde"
+  },
+  "̄": {
+    "text": "\\=",
+    "math": "\\bar"
+  },
+  "̆": {
+    "text": "\\u",
+    "math": "\\breve"
+  },
+  "̌": {
+    "text": "\\v",
+    "math": "\\check"
+  },
+  "̂": {
+    "text": "\\^",
+    "math": "\\hat"
+  },
+  "̇": {
+    "text": "\\.",
+    "math": "\\dot"
+  },
+  "̊": {
+    "text": "\\r",
+    "math": "\\mathring"
+  },
+  "̋": {
+    "text": "\\H"
+  },
+  "̧": {
+    "text": "\\c"
+  }
+}
