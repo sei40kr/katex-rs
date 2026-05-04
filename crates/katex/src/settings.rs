@@ -57,6 +57,7 @@ pub enum StrictMode {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase", default))]
 #[non_exhaustive]
 pub struct Settings {
     pub display_mode: bool,
@@ -252,5 +253,22 @@ mod tests {
         let json = serde_json::to_string(&s).unwrap();
         let back: Settings = serde_json::from_str(&json).unwrap();
         assert_eq!(s, back);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_uses_camel_case_keys() {
+        let s = Settings::builder().display_mode(true).leqno(true).build();
+        let json = serde_json::to_string(&s).unwrap();
+        assert!(json.contains("\"displayMode\":true"), "got: {json}");
+        assert!(!json.contains("display_mode"), "got: {json}");
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_partial_input_fills_in_defaults() {
+        let s: Settings = serde_json::from_str(r#"{"displayMode": true}"#).unwrap();
+        let expected = Settings::builder().display_mode(true).build();
+        assert_eq!(s, expected);
     }
 }
