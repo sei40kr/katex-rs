@@ -19,26 +19,22 @@
 //!   no longer needs it). We follow current upstream and omit it; if a
 //!   future upstream port reintroduces it, add the field here and
 //!   thread it through the parser.
-//! - The handler takes `&mut dyn ParserApi` instead of borrowing a
-//!   concrete `Parser`. Phase 4 introduces the real `Parser` type and
-//!   adds methods to [`ParserApi`]; Phase 3 keeps the trait empty so
-//!   the registry can be populated and round-tripped without depending
-//!   on a parser yet. The MathML/HTML builders are similarly shaped
-//!   around opaque `dyn` traits — the real signatures land alongside
-//!   the renderers in Phases 6 and 10.
+//! - The handler borrows `&mut Parser<'_>` directly. An earlier draft
+//!   used `&mut dyn ParserApi` to keep this module independent of the
+//!   parser; Phase 5 dropped the trait once the parser surface stabilised
+//!   because the trait was pure boilerplate (every method just delegated
+//!   to the concrete `Parser`). The cyclic module reference (`parser`
+//!   imports from here, this module names `Parser`) is fine in Rust.
+//!   The MathML/HTML builders still take `&dyn` traits — the real
+//!   signatures land alongside the renderers in Phases 6 and 10.
 
 use smol_str::SmolStr;
 
 use crate::parse_error::ParseError;
 use crate::parse_node::{NodeType, ParseNode};
+use crate::parser::Parser;
 use crate::token::Token;
 use crate::tree::{ArgType, BreakToken};
-
-/// Stand-in for the parser surface used by function handlers. Phase 4
-/// fills in the methods (`fetch`, `consume`, `parse_group`, …); Phase 3
-/// only needs the trait to exist so handlers can name `&mut dyn ParserApi`
-/// in their signature without depending on a concrete parser type.
-pub trait ParserApi {}
 
 /// Stand-in for the rendering options threaded through builders. Phase 6
 /// (MathML) and Phase 10 (HTML+CSS) introduce the real fields; the
@@ -57,9 +53,9 @@ pub trait MathDomNode {}
 pub trait HtmlDomNode {}
 
 /// Per-call context handed to a [`FunctionHandler`].
-pub struct FunctionContext<'a> {
+pub struct FunctionContext<'a, 's> {
     pub func_name: SmolStr,
-    pub parser: &'a mut dyn ParserApi,
+    pub parser: &'a mut Parser<'s>,
     pub token: Option<Token>,
     pub break_on_token_text: Option<BreakToken>,
 }
@@ -71,8 +67,8 @@ pub struct FunctionContext<'a> {
 /// `(AnyParseNode | null | undefined)[]`). Mandatory arguments are
 /// guaranteed present by the parser — the slice length always matches
 /// `FunctionSpec::num_args`.
-pub type FunctionHandler = fn(
-    ctx: FunctionContext<'_>,
+pub type FunctionHandler = for<'a, 's> fn(
+    ctx: FunctionContext<'a, 's>,
     args: &[ParseNode],
     opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError>;

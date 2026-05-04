@@ -28,13 +28,90 @@ use std::sync::LazyLock;
 
 use crate::define_function::FunctionSpec;
 
+pub mod accent;
+pub mod accentunder;
+pub mod arrow;
+pub mod char;
+pub mod color;
+pub mod cr;
+pub mod delimsizing;
+pub mod enclose;
+pub mod environment;
+pub mod font;
+pub mod genfrac;
+pub mod horizbrace;
+pub mod href;
+pub mod html_mathml;
+pub mod includegraphics;
+pub mod kern;
+pub mod lap;
+pub mod math;
+pub mod mathchoice;
+pub mod mclass;
+pub mod op;
+pub mod operatorname;
+pub mod ordgroup;
+pub mod overline;
+pub mod phantom;
+pub mod raisebox;
+pub mod rule;
+pub mod sizing;
+pub mod smash;
+pub mod sqrt;
+pub mod styling;
+pub mod supsub;
+pub mod symbols_op;
+pub mod symbols_ord;
+pub mod tag;
+pub mod text;
+pub mod underline;
+pub mod utils;
+pub mod verb;
+
 /// Built-in function specs, partitioned by upstream source file.
 /// Each inner slice is owned by one Phase 5 module (e.g.
 /// `functions/accent.rs`, `functions/sqrt.rs`); its slice is `pub`
 /// from that module and added here.
-///
-/// Empty for Phase 3.
-const FUNCTION_SLICES: &[&[FunctionSpec]] = &[];
+const FUNCTION_SLICES: &[&[FunctionSpec]] = &[
+    accent::SPECS,
+    accentunder::SPECS,
+    arrow::SPECS,
+    char::SPECS,
+    color::SPECS,
+    cr::SPECS,
+    delimsizing::SPECS,
+    enclose::SPECS,
+    environment::SPECS,
+    font::SPECS,
+    genfrac::SPECS,
+    horizbrace::SPECS,
+    href::SPECS,
+    html_mathml::SPECS,
+    includegraphics::SPECS,
+    kern::SPECS,
+    lap::SPECS,
+    math::SPECS,
+    mathchoice::SPECS,
+    mclass::SPECS,
+    op::SPECS,
+    operatorname::SPECS,
+    ordgroup::SPECS,
+    overline::SPECS,
+    phantom::SPECS,
+    raisebox::SPECS,
+    rule::SPECS,
+    sizing::SPECS,
+    smash::SPECS,
+    sqrt::SPECS,
+    styling::SPECS,
+    supsub::SPECS,
+    symbols_op::SPECS,
+    symbols_ord::SPECS,
+    tag::SPECS,
+    text::SPECS,
+    underline::SPECS,
+    verb::SPECS,
+];
 
 /// Name → spec lookup table built by walking [`FUNCTION_SLICES`] at
 /// first use. Mirrors upstream's `_functions` dict.
@@ -99,7 +176,7 @@ mod tests {
     use crate::types::Mode;
 
     fn dummy_handler(
-        _ctx: crate::define_function::FunctionContext<'_>,
+        _ctx: crate::define_function::FunctionContext<'_, '_>,
         _args: &[ParseNode],
         _opt_args: &[Option<ParseNode>],
     ) -> Result<ParseNode, ParseError> {
@@ -172,11 +249,11 @@ mod tests {
     #[test]
     fn default_registry_initialises_from_function_slices() {
         // The crate-wide `FUNCTIONS` registry is built from
-        // `FUNCTION_SLICES` on first access. Today `FUNCTION_SLICES` is
-        // empty, so the registry contains no entries; this test mostly
-        // exercises that the LazyLock initialiser doesn't panic.
-        assert!(FUNCTIONS.is_empty());
-        assert!(FUNCTIONS.get("\\frac").is_none());
+        // `FUNCTION_SLICES` on first access. Phase 5 populates it; this
+        // test mostly exercises that the LazyLock initialiser doesn't
+        // panic and that lookup works for at least one expected entry.
+        assert!(!FUNCTIONS.is_empty());
+        assert!(FUNCTIONS.contains("\\hat"));
     }
 
     static DUP_A: &[FunctionSpec] = &[FOO_SPEC];

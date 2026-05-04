@@ -42,7 +42,7 @@ pub mod units;
 pub use define_environment::{EnvContext, EnvHandler, EnvSpec};
 pub use define_function::{
     BuilderOptions, FunctionContext, FunctionHandler, FunctionSpec, HtmlBuilder, HtmlDomNode,
-    MathDomNode, MathmlBuilder, ParserApi, normalize_argument, ord_argument,
+    MathDomNode, MathmlBuilder, normalize_argument, ord_argument,
 };
 pub use define_macro::MacroSpec;
 pub use font_metrics_data::{CharacterMetrics, FONT_METRICS_DATA};

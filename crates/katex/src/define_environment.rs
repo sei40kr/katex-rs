@@ -7,24 +7,25 @@
 //! built from an explicit slice. See the deviation note in
 //! [`crate::define_function`] for the rationale.
 
-use crate::define_function::{HtmlBuilder, MathmlBuilder, ParserApi};
+use crate::define_function::{HtmlBuilder, MathmlBuilder};
 use crate::parse_error::ParseError;
 use crate::parse_node::{NodeType, ParseNode};
+use crate::parser::Parser;
 use crate::tree::ArgType;
 use crate::types::Mode;
 
 /// Per-call context handed to an [`EnvHandler`].
-pub struct EnvContext<'a> {
+pub struct EnvContext<'a, 's> {
     pub mode: Mode,
     pub env_name: &'a str,
-    pub parser: &'a mut dyn ParserApi,
+    pub parser: &'a mut Parser<'s>,
 }
 
 /// Environment handler. Builds and returns the `ParseNode` for one
 /// `\begin{name} ... \end{name}` invocation. Mirrors upstream's
 /// `EnvHandler`.
-pub type EnvHandler = fn(
-    ctx: EnvContext<'_>,
+pub type EnvHandler = for<'a, 's> fn(
+    ctx: EnvContext<'a, 's>,
     args: &[ParseNode],
     opt_args: &[Option<ParseNode>],
 ) -> Result<ParseNode, ParseError>;
@@ -99,7 +100,7 @@ mod tests {
     use super::*;
 
     fn dummy_handler(
-        _ctx: EnvContext<'_>,
+        _ctx: EnvContext<'_, '_>,
         _args: &[ParseNode],
         _opt_args: &[Option<ParseNode>],
     ) -> Result<ParseNode, ParseError> {
@@ -117,23 +118,5 @@ mod tests {
         assert!(!s.allowed_in_text);
         assert!(s.arg_types.is_empty());
         assert!(s.mathml_builder.is_none());
-    }
-
-    #[test]
-    fn handler_call_returns_dummy_internal() {
-        let s = EnvSpec::new(NodeType::Internal, &["matrix"], 0, dummy_handler);
-        struct DummyParser;
-        impl ParserApi for DummyParser {}
-        let mut p = DummyParser;
-        let ctx = EnvContext {
-            mode: Mode::Math,
-            env_name: "matrix",
-            parser: &mut p,
-        };
-        let n = (s.handler)(ctx, &[], &[]).unwrap();
-        match n {
-            ParseNode::Internal { mode, .. } => assert_eq!(mode, Mode::Math),
-            _ => panic!("expected internal"),
-        }
     }
 }

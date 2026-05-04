@@ -26,7 +26,7 @@ use std::sync::OnceLock;
 use regex::Regex;
 use smol_str::SmolStr;
 
-use crate::define_function::{FunctionContext, FunctionSpec, ParserApi};
+use crate::define_function::{FunctionContext, FunctionSpec};
 use crate::functions::FUNCTIONS;
 use crate::lexer::split_trailing_combining_marks;
 use crate::macro_expander::{MacroDefinition, MacroExpander};
@@ -102,8 +102,6 @@ pub struct Parser<'s> {
     pub leftright_depth: u32,
     next_token: Option<Token>,
 }
-
-impl ParserApi for Parser<'_> {}
 
 impl<'s> Parser<'s> {
     pub fn new(input: impl Into<std::sync::Arc<str>>, settings: &'s Settings) -> Self {
@@ -319,7 +317,7 @@ impl<'s> Parser<'s> {
     /// Build the "unsupported command" placeholder that the parser emits
     /// when an undefined control sequence is encountered with
     /// `throw_on_error == false`. Mirrors upstream `formatUnsupportedCmd`.
-    fn format_unsupported_cmd(&self, text: &str) -> ParseNode {
+    pub fn format_unsupported_cmd(&self, text: &str) -> ParseNode {
         let textord_array: Vec<ParseNode> = text
             .chars()
             .map(|c| ParseNode::TextOrd {
@@ -556,11 +554,9 @@ impl<'s> Parser<'s> {
             .handler
             .ok_or_else(|| ParseError::new(format!("No function handler for {}", name)))?;
         let func_name = SmolStr::new(name);
-        // The handler closure borrows the parser mutably; split the
-        // context construction from the call so the borrow is local.
         let ctx = FunctionContext {
             func_name,
-            parser: self as &mut dyn ParserApi,
+            parser: self,
             token,
             break_on_token_text,
         };
@@ -743,7 +739,7 @@ impl<'s> Parser<'s> {
         }))
     }
 
-    fn parse_size_group(&mut self, optional: bool) -> Result<Option<ParseNode>, ParseError> {
+    pub fn parse_size_group(&mut self, optional: bool) -> Result<Option<ParseNode>, ParseError> {
         // Don't expand before parseStringGroup.
         self.gullet.consume_spaces()?;
         let mut is_blank = false;
@@ -1190,6 +1186,8 @@ impl UnitFromStrOrErr for Unit {
 mod tests {
     use super::*;
 
+    use crate::parse_node::OpBody;
+
     fn parse(input: &str) -> Result<Vec<ParseNode>, ParseError> {
         let settings = Settings::default();
         let mut p = Parser::new(input.to_string(), &settings);
@@ -1335,15 +1333,15 @@ mod tests {
 
     #[test]
     fn undefined_control_sequence_errors_in_throw_mode() {
-        let err = parse(r"\frac").unwrap_err();
+        let err = parse(r"\notacommand").unwrap_err();
         assert!(err.raw_message.contains("Undefined control sequence"));
     }
 
     #[test]
     fn undefined_control_sequence_becomes_unsupported_cmd_when_not_throwing() {
         let s = Settings::builder().throw_on_error(false).build();
-        let body = parse_with(r"\frac", &s).unwrap();
-        // `\frac` becomes a color-wrapped text node.
+        let body = parse_with(r"\notacommand", &s).unwrap();
+        // `\notacommand` becomes a color-wrapped text node.
         assert_eq!(body.len(), 1);
         match &body[0] {
             ParseNode::Color { color, body, .. } => {
@@ -1351,8 +1349,8 @@ mod tests {
                 assert_eq!(body.len(), 1);
                 match &body[0] {
                     ParseNode::Text { body, .. } => {
-                        // `\frac` is 5 characters.
-                        assert_eq!(body.len(), 5);
+                        // `\notacommand` is 12 characters.
+                        assert_eq!(body.len(), 12);
                         for n in body {
                             assert!(matches!(n, ParseNode::TextOrd { .. }));
                         }
@@ -1406,5 +1404,329 @@ mod tests {
         let body = parse(" x ").unwrap();
         assert_eq!(body.len(), 1);
         assert!(matches!(&body[0], ParseNode::MathOrd { .. }));
+    }
+
+    // Phase 5 integration tests — exercise the function dispatch end to end
+    // on a representative cross-section of registered handlers.
+
+    #[test]
+    fn frac_builds_genfrac_node() {
+        let body = parse(r"\frac{1}{2}").unwrap();
+        assert_eq!(body.len(), 1);
+        match &body[0] {
+            ParseNode::GenFrac {
+                has_bar_line,
+                left_delim,
+                right_delim,
+                ..
+            } => {
+                assert!(*has_bar_line);
+                assert!(left_delim.is_none());
+                assert!(right_delim.is_none());
+            }
+            other => panic!("expected genfrac, got {:?}", other.node_type()),
+        }
+    }
+
+    #[test]
+    fn binom_sets_paren_delims() {
+        let body = parse(r"\binom{n}{k}").unwrap();
+        match &body[0] {
+            ParseNode::GenFrac {
+                left_delim,
+                right_delim,
+                has_bar_line,
+                ..
+            } => {
+                assert_eq!(left_delim.as_deref(), Some("("));
+                assert_eq!(right_delim.as_deref(), Some(")"));
+                assert!(!*has_bar_line);
+            }
+            other => panic!("expected genfrac, got {:?}", other.node_type()),
+        }
+    }
+
+    #[test]
+    fn dfrac_wraps_in_styling_display() {
+        let body = parse(r"\dfrac{1}{2}").unwrap();
+        match &body[0] {
+            ParseNode::Styling { style, body, .. } => {
+                assert_eq!(*style, StyleStr::Display);
+                assert!(matches!(body[0], ParseNode::GenFrac { .. }));
+            }
+            other => panic!("expected styling wrapper, got {:?}", other.node_type()),
+        }
+    }
+
+    #[test]
+    fn sqrt_with_optional_index() {
+        let body = parse(r"\sqrt[3]{x}").unwrap();
+        match &body[0] {
+            ParseNode::Sqrt { index, .. } => {
+                assert!(index.is_some());
+            }
+            _ => panic!("expected sqrt"),
+        }
+    }
+
+    #[test]
+    fn sqrt_without_index() {
+        let body = parse(r"\sqrt{x}").unwrap();
+        match &body[0] {
+            ParseNode::Sqrt { index, .. } => assert!(index.is_none()),
+            _ => panic!("expected sqrt"),
+        }
+    }
+
+    #[test]
+    fn hat_builds_accent_node() {
+        let body = parse(r"\hat{x}").unwrap();
+        match &body[0] {
+            ParseNode::Accent {
+                label,
+                is_stretchy,
+                is_shifty,
+                ..
+            } => {
+                assert_eq!(label.as_str(), "\\hat");
+                assert!(!*is_stretchy);
+                assert!(*is_shifty);
+            }
+            _ => panic!("expected accent"),
+        }
+    }
+
+    #[test]
+    fn widetilde_is_stretchy_but_shifty() {
+        let body = parse(r"\widetilde{abc}").unwrap();
+        match &body[0] {
+            ParseNode::Accent {
+                is_stretchy,
+                is_shifty,
+                ..
+            } => {
+                assert!(*is_stretchy);
+                assert!(*is_shifty);
+            }
+            _ => panic!("expected accent"),
+        }
+    }
+
+    #[test]
+    fn sum_is_op_with_limits() {
+        let body = parse(r"\sum").unwrap();
+        match &body[0] {
+            ParseNode::Op {
+                limits,
+                body: OpBody::Symbol(name),
+                ..
+            } => {
+                assert!(*limits);
+                assert_eq!(name.as_str(), "\\sum");
+            }
+            _ => panic!("expected op"),
+        }
+    }
+
+    #[test]
+    fn sin_is_op_named() {
+        let body = parse(r"\sin").unwrap();
+        match &body[0] {
+            ParseNode::Op {
+                limits,
+                body: OpBody::Symbol(name),
+                ..
+            } => {
+                assert!(!*limits);
+                assert_eq!(name.as_str(), "\\sin");
+            }
+            _ => panic!("expected op"),
+        }
+    }
+
+    #[test]
+    fn left_right_pairs_delims() {
+        let body = parse(r"\left( x \right)").unwrap();
+        match &body[0] {
+            ParseNode::LeftRight { left, right, .. } => {
+                assert_eq!(left.as_str(), "(");
+                assert_eq!(right.as_str(), ")");
+            }
+            _ => panic!("expected leftright"),
+        }
+    }
+
+    #[test]
+    fn middle_outside_left_errors() {
+        let err = parse(r"\middle|").unwrap_err();
+        assert!(err.raw_message.contains("\\middle without preceding"));
+    }
+
+    #[test]
+    fn over_infix_rewrites_to_frac() {
+        let body = parse(r"a \over b").unwrap();
+        // `\over` should rewrite into a single genfrac wrapping a/b.
+        assert_eq!(body.len(), 1);
+        assert!(matches!(&body[0], ParseNode::GenFrac { .. }));
+    }
+
+    #[test]
+    fn text_command_switches_to_text_mode() {
+        let body = parse(r"\text{hi}").unwrap();
+        match &body[0] {
+            ParseNode::Text { body, font, .. } => {
+                assert_eq!(font.as_ref().map(|s| s.as_str()), Some("\\text"));
+                assert_eq!(body.len(), 2);
+            }
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn mathbb_builds_font_node() {
+        let body = parse(r"\mathbb{R}").unwrap();
+        match &body[0] {
+            ParseNode::Font { font, .. } => assert_eq!(font.as_str(), "mathbb"),
+            _ => panic!("expected font"),
+        }
+    }
+
+    #[test]
+    fn bbb_alias_resolves_to_mathbb() {
+        let body = parse(r"\Bbb{R}").unwrap();
+        match &body[0] {
+            ParseNode::Font { font, .. } => assert_eq!(font.as_str(), "mathbb"),
+            _ => panic!("expected font"),
+        }
+    }
+
+    #[test]
+    fn boldsymbol_is_mclass_wrapper() {
+        let body = parse(r"\boldsymbol{x}").unwrap();
+        match &body[0] {
+            ParseNode::MClass { mclass, body, .. } => {
+                assert_eq!(mclass.as_str(), "mord");
+                assert!(matches!(&body[0], ParseNode::Font { .. }));
+            }
+            _ => panic!("expected mclass"),
+        }
+    }
+
+    #[test]
+    fn textcolor_carries_color() {
+        let body = parse(r"\textcolor{red}{x}").unwrap();
+        match &body[0] {
+            ParseNode::Color { color, .. } => assert_eq!(color.as_str(), "red"),
+            _ => panic!("expected color"),
+        }
+    }
+
+    #[test]
+    fn xleftarrow_with_optional_below() {
+        let body = parse(r"\xleftarrow[a]{b}").unwrap();
+        match &body[0] {
+            ParseNode::XArrow { label, below, .. } => {
+                assert_eq!(label.as_str(), "\\xleftarrow");
+                assert!(below.is_some());
+            }
+            _ => panic!("expected xArrow"),
+        }
+    }
+
+    #[test]
+    fn rule_with_shift() {
+        let body = parse(r"\rule[1pt]{2pt}{3pt}").unwrap();
+        match &body[0] {
+            ParseNode::Rule { shift, .. } => assert!(shift.is_some()),
+            _ => panic!("expected rule"),
+        }
+    }
+
+    #[test]
+    fn smash_default_smashes_both() {
+        let body = parse(r"\smash{x}").unwrap();
+        match &body[0] {
+            ParseNode::Smash {
+                smash_height,
+                smash_depth,
+                ..
+            } => {
+                assert!(*smash_height);
+                assert!(*smash_depth);
+            }
+            _ => panic!("expected smash"),
+        }
+    }
+
+    #[test]
+    fn smash_with_t_only_smashes_height() {
+        let body = parse(r"\smash[t]{x}").unwrap();
+        match &body[0] {
+            ParseNode::Smash {
+                smash_height,
+                smash_depth,
+                ..
+            } => {
+                assert!(*smash_height);
+                assert!(!*smash_depth);
+            }
+            _ => panic!("expected smash"),
+        }
+    }
+
+    #[test]
+    fn unknown_environment_errors() {
+        let err = parse(r"\begin{nonesuch}").unwrap_err();
+        assert!(err.raw_message.contains("No such environment"));
+    }
+
+    #[test]
+    fn href_without_trust_yields_color_placeholder() {
+        let body = parse(r"\href{http://example.com}{link}").unwrap();
+        // Default trust=false → handler returns formatUnsupportedCmd.
+        match &body[0] {
+            ParseNode::Color { color, .. } => assert_eq!(color.as_str(), "#cc0000"),
+            other => panic!("expected color placeholder, got {:?}", other.node_type()),
+        }
+    }
+
+    #[test]
+    fn href_with_trust_passes_through() {
+        let s = Settings::builder().trust(true).build();
+        let body = parse_with(r"\href{http://example.com}{x}", &s).unwrap();
+        match &body[0] {
+            ParseNode::Href { href, .. } => assert_eq!(href, "http://example.com"),
+            _ => panic!("expected href"),
+        }
+    }
+
+    #[test]
+    fn big_delimiter_yields_delimsizing() {
+        let body = parse(r"\bigl(").unwrap();
+        match &body[0] {
+            ParseNode::DelimSizing {
+                size,
+                mclass,
+                delim,
+                ..
+            } => {
+                assert_eq!(*size, 1);
+                assert_eq!(mclass.as_str(), "mopen");
+                assert_eq!(delim.as_str(), "(");
+            }
+            _ => panic!("expected delimsizing"),
+        }
+    }
+
+    #[test]
+    fn displaystyle_consumes_rest_of_group() {
+        let body = parse(r"\displaystyle x").unwrap();
+        match &body[0] {
+            ParseNode::Styling { style, body, .. } => {
+                assert_eq!(*style, StyleStr::Display);
+                assert_eq!(body.len(), 1);
+            }
+            _ => panic!("expected styling"),
+        }
     }
 }
