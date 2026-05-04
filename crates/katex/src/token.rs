@@ -29,7 +29,7 @@ use crate::source_location::SourceLocation;
 /// * the synthetic end-of-input marker `"EOF"`,
 /// * or a single source character (possibly a multi-byte codepoint plus
 ///   trailing combining marks).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Token {
     pub text: SmolStr,
     pub loc: Option<SourceLocation>,
