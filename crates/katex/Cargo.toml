@@ -10,6 +10,8 @@ default = []
 serde = ["dep:serde"]
 
 [dependencies]
+regex = "1"
+smol_str = "0.3"
 thiserror = "2"
 serde = { version = "1", features = ["derive"], optional = true }
 
