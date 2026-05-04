@@ -1,12 +1,13 @@
 //! Rust port of KaTeX.
 //!
-//! Phase 0–3 surface: env-independent leaf primitives, the
+//! Phase 0–4 surface: env-independent leaf primitives, the
 //! lexer / token / namespace / macro-expander layer, the codegen-emitted
 //! static data tables (`symbols`, `macros`, `spacing_data`, the unicode
 //! helpers, and `font_metrics_data`), the [`parse_node::ParseNode`] AST
-//! type, and the function/environment/macro dispatch shapes plus the
-//! lazy [`functions::FUNCTIONS`] registry.
-//! Parser, builder, and renderer land in subsequent phases.
+//! type, the function/environment/macro dispatch shapes plus the lazy
+//! [`functions::FUNCTIONS`] registry, and the [`parser::Parser`] that
+//! converts a token stream into a `Vec<ParseNode>`. Builder and renderer
+//! land in subsequent phases.
 //!
 //! See `CLAUDE.md` at the repo root for vision and architectural rules.
 
@@ -23,6 +24,7 @@ pub mod macros;
 pub mod namespace;
 pub mod parse_error;
 pub mod parse_node;
+pub mod parser;
 pub mod settings;
 pub mod source_location;
 pub mod spacing_data;
@@ -53,6 +55,7 @@ pub use macros::MACROS;
 pub use namespace::Namespace;
 pub use parse_error::ParseError;
 pub use parse_node::{ArrayTag, HLineSpec, NodeType, OpBody, ParseNode};
+pub use parser::Parser;
 pub use settings::{OutputFormat, Settings, SettingsBuilder, StrictMode};
 pub use source_location::SourceLocation;
 pub use spacing_data::{SPACINGS, SpacingTable, TIGHT_SPACINGS};

@@ -73,6 +73,26 @@ fn token_regex() -> &'static Regex {
     RE.get_or_init(|| Regex::new(TOKEN_REGEX_STR).expect("token regex compiles"))
 }
 
+/// If `text` ends in a run of combining diacritical marks (U+0300..=U+036F),
+/// return `Some((base_byte_len, marks))` where `base_byte_len` is the byte
+/// offset of the first combining mark and `marks` is the trailing run.
+/// Mirrors upstream's `combiningDiacriticalMarksEndRegex` match.
+pub fn split_trailing_combining_marks(text: &str) -> Option<(usize, &str)> {
+    let mut start = text.len();
+    for (i, c) in text.char_indices().rev() {
+        if matches!(c, '\u{0300}'..='\u{036F}') {
+            start = i;
+        } else {
+            break;
+        }
+    }
+    if start == text.len() {
+        None
+    } else {
+        Some((start, &text[start..]))
+    }
+}
+
 /// Stateful tokenizer over an immutable input buffer.
 pub struct Lexer {
     input: Arc<str>,

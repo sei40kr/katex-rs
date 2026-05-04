@@ -139,6 +139,16 @@ impl<'s> MacroExpander<'s> {
         self.mode = new_mode;
     }
 
+    /// Mutable access to the underlying lexer. Used by the parser when it
+    /// needs to install temporary catcodes (e.g. `\href`/`\url`).
+    pub fn lexer_mut(&mut self) -> &mut Lexer {
+        &mut self.lexer
+    }
+
+    pub fn lexer(&self) -> &Lexer {
+        &self.lexer
+    }
+
     pub fn begin_group(&mut self) {
         self.macros.begin_group();
     }
@@ -287,6 +297,40 @@ impl<'s> MacroExpander<'s> {
             start,
             end: last_tok,
         })
+    }
+
+    /// Find a macro argument without expanding tokens, push the resulting
+    /// tokens (in reverse order) onto the stack, and return a sentinel
+    /// `Token` whose `loc` spans the argument. Mirrors upstream
+    /// `scanArgument`. The caller (Parser) reads back tokens until it sees
+    /// the synthetic `EOF` token that this method pushes as a terminator.
+    ///
+    /// Returns `Ok(None)` for an absent optional argument.
+    pub fn scan_argument(&mut self, is_optional: bool) -> Result<Option<Token>, ParseError> {
+        let (tokens, start, end) = if is_optional {
+            // `\@ifnextchar` semantics: skip leading spaces.
+            self.consume_spaces()?;
+            if self.future()?.text != "[" {
+                return Ok(None);
+            }
+            let start = self.pop_token()?;
+            let bracket = SmolStr::new_static("]");
+            let arg = self.consume_arg(Some(&[bracket]))?;
+            (arg.tokens, start, arg.end)
+        } else {
+            let arg = self.consume_arg(None)?;
+            (arg.tokens, arg.start, arg.end)
+        };
+        // Push an EOF terminator so the parser knows where the argument ends,
+        // then push the argument tokens back onto the stack (reversed —
+        // `consume_arg` already returns them reversed, ready for the stack).
+        let eof_loc = end.loc.clone();
+        self.push_token(Token::new(SmolStr::new_static("EOF"), eof_loc));
+        self.push_tokens(tokens);
+        Ok(Some(Token::new(
+            SmolStr::new_static(""),
+            SourceLocation::range(start.loc.as_ref(), end.loc.as_ref()),
+        )))
     }
 
     /// Consume `num_args` macro arguments, optionally with delimiters.
