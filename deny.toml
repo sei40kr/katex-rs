@@ -1,0 +1,15 @@
+# Enforce the crate boundary from CLAUDE.md: `crates/katex` must not pull
+# in any browser/JS-host bridge. Run scoped to the core crate:
+#   cargo deny --manifest-path crates/katex/Cargo.toml check bans
+
+[bans]
+multiple-versions = "allow"
+wildcards = "allow"
+deny = [
+  "wasm-bindgen",
+  "wasm-bindgen-futures",
+  "js-sys",
+  "web-sys",
+  "serde-wasm-bindgen",
+  "console_error_panic_hook",
+]

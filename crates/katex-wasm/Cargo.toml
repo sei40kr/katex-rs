@@ -10,5 +10,14 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-katex = { path = "../katex" }
+katex = { path = "../katex", features = ["serde"] }
 wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = "0.1"
+
+# wasm-opt fetches binaryen over the network; keep `wasm-pack build` offline.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = false

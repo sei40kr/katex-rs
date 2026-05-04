@@ -27,6 +27,7 @@ craneLib.devShell {
     pkgs.sccache
     pkgs.wasm-pack
     pkgs.wasm-bindgen-cli
+    pkgs.cargo-deny
   ]
   ++ lib.optionals isLinux [
     pkgs.mold

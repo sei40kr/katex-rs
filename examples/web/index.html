@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>katex-rs &mdash; browser demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 52em; margin: 2em auto; padding: 0 1em; line-height: 1.5; color: #222; }
+    h1 { font-size: 1.4em; margin-bottom: 0.2em; }
+    p.lede { color: #555; margin-top: 0; }
+    .row { margin: 0.9em 0; padding: 0.6em 1em; border: 1px solid #ddd; border-radius: 6px; }
+    .tex { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #444; font-size: 0.9em; display: block; margin-bottom: 0.4em; }
+    math { font-size: 1.4em; }
+    .row.error { border-color: #cc0000; background: #fff5f5; }
+    .row.error .err { color: #cc0000; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; white-space: pre-wrap; }
+    fieldset { margin-top: 1.5em; padding: 0.8em 1em; border: 1px solid #ccc; border-radius: 6px; }
+    legend { padding: 0 0.4em; color: #555; }
+    textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; padding: 0.4em; }
+    #live-output { margin-top: 0.6em; min-height: 2em; }
+  </style>
+</head>
+<body>
+<h1>katex-rs &mdash; browser demo</h1>
+<p class="lede">Each row below is rendered live in the browser by
+<code>katex-wasm</code>'s <code>renderToString</code>, which calls the same Rust
+parser/MathML builder used by <code>cargo test</code>.</p>
+
+<div id="samples"></div>
+
+<fieldset>
+  <legend>Try your own</legend>
+  <textarea id="live-input" rows="2" spellcheck="false">\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}</textarea>
+  <div id="live-output"></div>
+</fieldset>
+
+<script type="module">
+  import init, { renderToString } from "./pkg/katex_wasm.js";
+
+  // Cross-check with crates/katex/tests/snapshots/inputs/ when adding entries.
+  const samples = [
+    "\\frac{1}{2}",
+    "x^2 + y^2 = z^2",
+    "\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}",
+    "\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
+    "\\sqrt[3]{\\alpha + \\beta}",
+    "\\hat{x} \\cdot \\vec{y}",
+    "\\left( \\frac{a}{b} \\right)^n",
+    "\\mathbb{R} \\subset \\mathbb{C}",
+    "\\sin^2 \\theta + \\cos^2 \\theta = 1",
+    "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1",
+    "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
+    "\\begin{cases} x & x \\geq 0 \\\\ -x & x < 0 \\end{cases}",
+  ];
+
+  const escape = (s) => s.replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+  function renderInto(host, tex) {
+    const srcRow = `<span class="tex">${escape(tex)}</span>`;
+    try {
+      host.innerHTML = srcRow + renderToString(tex, undefined);
+      host.classList.remove("error");
+    } catch (e) {
+      host.innerHTML = `${srcRow}<div class="err">${escape(String(e.message ?? e))}</div>`;
+      host.classList.add("error");
+    }
+  }
+
+  await init();
+
+  const root = document.getElementById("samples");
+  for (const tex of samples) {
+    const row = document.createElement("div");
+    row.className = "row";
+    root.appendChild(row);
+    renderInto(row, tex);
+  }
+
+  const liveInput = document.getElementById("live-input");
+  const liveOutput = document.getElementById("live-output");
+  liveOutput.className = "row";
+  const update = () => renderInto(liveOutput, liveInput.value);
+  liveInput.addEventListener("input", update);
+  update();
+</script>
+</body>
+</html>

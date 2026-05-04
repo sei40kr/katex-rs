@@ -12,8 +12,7 @@
 /katex-*.tgz
 /package
 
-# Local demo output regenerated from the `mathml_demo` example —
-# never commit, since a snapshot would silently drift from the
-# current renderer.
-/examples/web/index.html
+# wasm-pack output for the browser example — regenerated from
+# `crates/katex-wasm` and never committed.
+/examples/web/pkg
 

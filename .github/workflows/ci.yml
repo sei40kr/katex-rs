@@ -35,3 +35,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: cargo xtask snapshot verify
+
+  crate-boundary:
+    name: katex crate boundary (no wasm-bindgen)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans
+          manifest-path: crates/katex/Cargo.toml
