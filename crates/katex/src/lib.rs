@@ -21,6 +21,7 @@ pub mod build_mathml;
 pub mod define_environment;
 pub mod define_function;
 pub mod define_macro;
+pub mod environments;
 pub mod font_metrics_data;
 pub mod functions;
 mod katex;
@@ -52,6 +53,7 @@ pub use define_function::{
     FunctionContext, FunctionHandler, FunctionSpec, MathmlBuilder, normalize_argument, ord_argument,
 };
 pub use define_macro::MacroSpec;
+pub use environments::{ENVIRONMENTS, EnvironmentRegistry};
 pub use font_metrics_data::{CharacterMetrics, FONT_METRICS_DATA};
 pub use functions::{FUNCTIONS, FunctionRegistry};
 pub use katex::{parse, render_to_mathml_string};

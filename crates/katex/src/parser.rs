@@ -196,7 +196,7 @@ impl<'s> Parser<'s> {
     }
 
     /// Discard space tokens from the lookahead.
-    fn consume_spaces(&mut self) -> Result<(), ParseError> {
+    pub fn consume_spaces(&mut self) -> Result<(), ParseError> {
         while self.fetch()?.text == " " {
             self.consume();
         }
@@ -599,6 +599,34 @@ impl<'s> Parser<'s> {
             }
         }
         Ok((args, opt_args))
+    }
+
+    /// Parse an environment-spec argument. Convenience wrapper around
+    /// [`Parser::parse_group_of_type`] used by the `\begin` dispatcher
+    /// in [`crate::functions::environment`]. Mirrors upstream's
+    /// per-argument call inside `parseFunction` for environments.
+    pub fn parse_arg_for_environment(
+        &mut self,
+        arg_type: Option<ArgType>,
+        optional: bool,
+        env_name: &str,
+    ) -> Result<Option<ParseNode>, ParseError> {
+        let label = format!("argument to environment '{env_name}'");
+        self.parse_group_of_type(&label, arg_type, optional)
+    }
+
+    /// Parse the `{name}` group that follows `\end`. Mirrors the
+    /// `\end` argument-parse done implicitly by `parseFunction`
+    /// upstream.
+    pub fn parse_environment_name_group(&mut self) -> Result<ParseNode, ParseError> {
+        match self.parse_group_of_type(
+            "environment name",
+            Some(ArgType::Mode(Mode::Text)),
+            false,
+        )? {
+            Some(g) => Ok(g),
+            None => Err(ParseError::new("Expected environment name after \\end")),
+        }
     }
 
     /// Parse a group with the typed-argument flow. Mirrors upstream
@@ -1678,6 +1706,70 @@ mod tests {
     fn unknown_environment_errors() {
         let err = parse(r"\begin{nonesuch}").unwrap_err();
         assert!(err.raw_message.contains("No such environment"));
+    }
+
+    #[test]
+    fn pmatrix_parses_to_leftright_array() {
+        let body = parse(r"\begin{pmatrix} a & b \\ c & d \end{pmatrix}").unwrap();
+        assert_eq!(body.len(), 1);
+        match &body[0] {
+            ParseNode::LeftRight {
+                body, left, right, ..
+            } => {
+                assert_eq!(left.as_str(), "(");
+                assert_eq!(right.as_str(), ")");
+                assert!(matches!(&body[0], ParseNode::Array { .. }));
+                if let ParseNode::Array { body: rows, .. } = &body[0] {
+                    assert_eq!(rows.len(), 2);
+                    assert_eq!(rows[0].len(), 2);
+                    assert_eq!(rows[1].len(), 2);
+                }
+            }
+            other => panic!("expected leftright(array), got {:?}", other.node_type()),
+        }
+    }
+
+    #[test]
+    fn matrix_parses_to_array() {
+        let body = parse(r"\begin{matrix} 1 & 2 \end{matrix}").unwrap();
+        assert!(matches!(&body[0], ParseNode::Array { .. }));
+    }
+
+    #[test]
+    fn cases_wraps_array_in_leftright_braces() {
+        let body = parse(r"\begin{cases} 1 \\ 2 \end{cases}").unwrap();
+        match &body[0] {
+            ParseNode::LeftRight { left, right, .. } => {
+                assert_eq!(left.as_str(), "\\{");
+                assert_eq!(right.as_str(), ".");
+            }
+            _ => panic!("expected leftright"),
+        }
+    }
+
+    #[test]
+    fn aligned_parses_to_array_node() {
+        let body = parse(r"\begin{aligned} a &= b \\ c &= d \end{aligned}").unwrap();
+        match &body[0] {
+            ParseNode::Array {
+                body: rows,
+                col_separation_type,
+                ..
+            } => {
+                assert_eq!(rows.len(), 2);
+                assert_eq!(
+                    *col_separation_type,
+                    Some(crate::tree::ColSeparationType::Align)
+                );
+            }
+            _ => panic!("expected array"),
+        }
+    }
+
+    #[test]
+    fn mismatched_end_environment_errors() {
+        let err = parse(r"\begin{matrix} 1 \end{cases}").unwrap_err();
+        assert!(err.raw_message.contains("Mismatch"));
     }
 
     #[test]

@@ -46,12 +46,23 @@ pub fn build_math_ml(
     for_mathml_only: bool,
 ) -> MathMlElement {
     let body = build_expression(tree, options, true);
-    let mrow = MathMlElement::with_children("mrow", body).into_node();
+    // Upstream skips the wrapper mrow only when the single child is an
+    // already row-like element (`mrow` or `mtable`). Other single-child
+    // shapes (`mi`, `mo`, `mfrac`, `mroot`, …) still get wrapped.
+    let wrapper = if body.len() == 1
+        && let Some(MathMlNode::Element(el)) = body.first()
+        && matches!(el.tag.as_str(), "mrow" | "mtable")
+    {
+        body.into_iter().next().expect("len == 1")
+    } else {
+        MathMlElement::with_children("mrow", body).into_node()
+    };
     let annotation =
         MathMlElement::with_children("annotation", vec![MathMlNode::Text(tex.to_string())])
             .with_attribute("encoding", "application/x-tex")
             .into_node();
-    let semantics = MathMlElement::with_children("semantics", vec![mrow, annotation]).into_node();
+    let semantics =
+        MathMlElement::with_children("semantics", vec![wrapper, annotation]).into_node();
     let mut math = MathMlElement::with_children("math", vec![semantics])
         .with_attribute("xmlns", "http://www.w3.org/1998/Math/MathML");
     if settings.display_mode {
@@ -202,7 +213,7 @@ pub fn build_group(group: &ParseNode, options: &Options) -> MathMlNode {
             scriptscript,
             ..
         } => mathchoice_node(display, text, script, scriptscript, options),
-        ParseNode::Array { .. } => MathMlElement::new("mtable").into_node(),
+        ParseNode::Array { .. } => crate::environments::array::array_mathml_builder(group, options),
         ParseNode::CdLabel { label, .. } => build_group(label, options),
         ParseNode::CdLabelParent { fragment, .. } => build_group(fragment, options),
         ParseNode::Cr { .. } => MathMlElement::new("mspace").into_node(),
@@ -389,7 +400,8 @@ fn mo_fence(delim: &str, _options: &Options) -> MathMlNode {
     let resolved = resolve_symbol(Mode::Math, delim);
     let mut el = MathMlElement::with_children("mo", vec![MathMlNode::Text(resolved)]);
     el.set_attribute("fence", "true");
-    el.set_attribute("stretchy", "true");
+    // Upstream omits `stretchy="true"` here — `<mo fence="true">` already
+    // implies the default stretchy behavior in MathML.
     el.into_node()
 }
 
@@ -529,10 +541,9 @@ fn styling_node(style: StyleStr, body: &[ParseNode], options: &Options) -> MathM
     };
     let inner_options = options.having_style(new_style);
     let inner = build_expression(body, &inner_options, false);
-    let mut el = MathMlElement::with_children(
-        "mstyle",
-        vec![MathMlElement::with_children("mrow", inner).into_node()],
-    );
+    // Upstream's `<mstyle>` carries the children directly (no inner
+    // `<mrow>`).
+    let mut el = MathMlElement::with_children("mstyle", inner);
     let (display, level) = match style {
         StyleStr::Display => ("true", "0"),
         StyleStr::Text => ("false", "0"),
@@ -858,8 +869,8 @@ mod tests {
     #[test]
     fn ordgroup_with_one_child_unwraps() {
         let mml = render("{x}");
-        // The body inside semantics' <mrow> should contain just <mi>x</mi>
-        // without an extra wrapping mrow.
+        // Upstream wraps a single non-row-like child in an mrow; only
+        // single-child `mrow`/`mtable` bypass the wrapper.
         assert!(
             mml.contains("<mrow><mi>x</mi></mrow><annotation"),
             "got: {mml}"
