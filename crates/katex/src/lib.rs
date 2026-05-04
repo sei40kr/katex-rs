@@ -1,6 +1,6 @@
 //! Rust port of KaTeX.
 //!
-//! Phase 0–6 surface: env-independent leaf primitives, the
+//! Phase 0–7 surface: env-independent leaf primitives, the
 //! lexer / token / namespace / macro-expander layer, the codegen-emitted
 //! static data tables (`symbols`, `macros`, `spacing_data`, the unicode
 //! helpers, and `font_metrics_data`), the [`parse_node::ParseNode`] AST
@@ -8,7 +8,9 @@
 //! [`functions::FUNCTIONS`] registry, the [`parser::Parser`] that
 //! converts a token stream into a `Vec<ParseNode>`, and the MathML
 //! renderer ([`mathml_tree`], [`options`], [`build_mathml`]) reachable
-//! from the top-level [`render_to_mathml_string`] entry point.
+//! from the top-level [`render_to_mathml_string`] entry point. Parity
+//! with upstream is anchored by snapshot tests under
+//! `tests/snapshots/` (see `tests/mathml_snapshots.rs`).
 //! HTML+CSS rendering lands in Phase 10.
 //!
 //! See `CLAUDE.md` at the repo root for vision and architectural rules.

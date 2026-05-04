@@ -2,7 +2,7 @@
   "name": "katex-rs-snapshot-oracle",
   "private": true,
   "description": "Pins the upstream KaTeX version used as the parity oracle by the Rust port.",
-  "dependencies": {
+  "devDependencies": {
     "katex": "0.16.45"
   }
 }

@@ -1,0 +1,1 @@
+<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle displaystyle="true" scriptlevel="0"><mfrac><mn>1</mn><mrow><mn>1</mn><mo>+</mo><mstyle displaystyle="true" scriptlevel="0"><mfrac><mn>1</mn><mi>x</mi></mfrac></mstyle></mrow></mfrac></mstyle></mrow><annotation encoding="application/x-tex">\cfrac{1}{1+\cfrac{1}{x}}</annotation></semantics></math>
